@@ -1,9 +1,8 @@
-import os
+
 import pandas as pd
-import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
-
+from joblib import load
 import streamlit as st
 
 df = pd.read_csv('dataset/TheSocialDilemma.csv')
@@ -21,7 +20,8 @@ st.markdown('''## Описание колонок набора данных
 11.	hashtags	Все хэштеги, указанные в твите вместе с #TheSocialDilemma
 12.	source	Утилита, используемая для публикации твита, Твиты с сайта Twitter имеют значение источника - web
 13.	is_retweet	Указывает, был ли этот твит ретвитнут аутентифицируемым пользователем.
-14.	Sentiment(Target variable)	Указывает на настроение твита, состоит из трех категорий: Позитивный, нейтральный и негативный''')
+14.	Sentiment(Target variable)	
+Указывает на настроение твита, состоит из трех категорий: Позитивный, нейтральный и негативный''')
 
 st.markdown('## проверка пропусков значений в колонках')
 data = df.count().reset_index()
@@ -97,3 +97,32 @@ sns.barplot(data=source,
             x='Количество твитов',
             orient='h', ax=ax).set_title('10 популярных источников отправки твитов')
 st.pyplot(fig)
+
+# vectorize = TfidfVectorizer()
+
+labels = tuple(df['Sentiment'].unique())
+# ds = df[['Sentiment', 'text']].copy(deep=True)
+# # Векторизируем текст твита - входноый параметр
+# x = vectorize.fit_transform(ds['text'])
+# # Трансформируем слова в цифры для выходного параметра
+# y = ds['Sentiment'].apply(lambda x: labels.index(x))
+#
+# x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.2, stratify=y)
+#
+# mlpc = MLPClassifier(hidden_layer_sizes=(100, 50, 20), warm_start=True, early_stopping=True).fit(x_train, y_train)
+mlpc = load('dataset/mlpc.joblib')
+vectorize = load('dataset/vector.joblib')
+text = st.text_area("текст твита",
+                    value="#TheSocialDilemma 😳 wow!! We need regulations",
+                    max_chars=140,
+                    help='Текст')
+
+
+if st.button('Определить характер сообщения'):
+    if text == '':
+        st.write('Пустой твит')
+    else:
+        x_new = vectorize.transform([text])
+        y_new = int(mlpc.predict(x_new))
+        message = labels[y_new]
+        st.markdown(f'Характер текста: **{message}**')
